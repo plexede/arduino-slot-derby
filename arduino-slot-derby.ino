@@ -9,7 +9,16 @@ Servo ESC;  // create servo object to control the ESC
 #define BUTTON 3
 #define MOTOR A0
 
-#define IMU_DEADZONE 10;  // PLAY WITH THIS (the number i put is completely random) "Accelerometer range is set at ±4 g with a resolution of 0.122 mg."
+// ESC pulse width in microseconds
+#define MIN_PULSE_WIDTH 1100
+#define MAX_PULSE_WIDTH 1900
+
+
+// blink every 200ms for 5 seconds for priming (to make sure it doesnt move and accidentally trigger)
+#define primingPeriod 5000
+#define blinkInterval 200
+
+#define IMU_DEADZONE 10  // PLAY WITH THIS (the number i put is completely random) "Accelerometer range is set at ±4 g with a resolution of 0.122 mg." (whatever that means)
 
 
 void setup() {
@@ -20,20 +29,21 @@ void setup() {
   pinMode(MOTOR, OUTPUT);
 
   // Attach the ESC to MOTOR pin
-  ESC.attach(MOTOR, 1100, 1900);  // (pin, min pulse width, max pulse width in microseconds)
+  ESC.attach(MOTOR, MIN_PULSE_WIDTH, MAX_PULSE_WIDTH);  // (pin, min pulse width, max pulse width in microseconds)
 
   // initialize IMU
   if (!IMU.begin()) {
-    Serial.println("Failed to initialize IMU!");
-    while (1)
-      ;
+    while (1) {
+      Serial.println("Failed to initialize IMU!");
+    };
   }
 }
 
-calculateSpeed(){
-
-  // increase over time (blocking)
-};
+uint8_t calculateSpeed() {
+  // increase over time
+  uint8_t toReturn = 100;             // try to return 100% speed
+  return constrain(toReturn, 0, 75);  // clamp to 75% speed and return as function output.
+}
 
 void loop() {
   digitalWrite(LED, LOW);
@@ -42,14 +52,10 @@ void loop() {
   }
 
   // priming period (to make sure it doesnt move and accidentally trigger)
-  {
-    // blink every 200ms for 5 seconds for priming
-    uint16_t primingPeriod = 5000;
-    uint16_t blinkInterval = 200;
-    for (uint16_t i; i < (primingPeriod / blinkInterval); i++) {  // todo put variable outside to avoid calculating every time
-      digitalWrite(LED, (!digitalRead(LED)));                     // set to opposite, meaning it instantly turns off until next call which turns it back on (the opposite state)
-      delay(blinkInterval);
-    }
+  // blink every 200ms for 5 seconds for priming
+  for (uint16_t i; i < (primingPeriod / blinkInterval); i++) {  // todo put variable outside to avoid calculating every time
+    digitalWrite(LED, (!digitalRead(LED)));                     // set to opposite, meaning it instantly turns off until next call which turns it back on (the opposite state)
+    delay(blinkInterval);
   }
   digitalWrite(LED, HIGH);  // ensure its on at the end because im too lazy to do math
 
@@ -77,8 +83,8 @@ void loop() {
   while (!digitalRead(BUTTON)) {  // allow to be cancelled with button press (hold? because blocking delays)
     uint8_t calculatedValue;      // value from the analog pin
 
-    // calculate and constrain to 75% power
-    calculatedValue = map(constrain(calculateSpeed(), 0, 75), 0, 100, 0, 180);  // scale it to use it with the servo library (value between 0 and 180)
-    ESC.write(calculatedValue);                                                 // Send the signal to the ESC
+    // call speed calculatation function
+    calculatedValue = map(calculateSpeed(), 0, 100, 0, 180);  // scale it to use it with the servo library (value between 0 and 180)
+    ESC.write(calculatedValue);                               // Send the signal to the ESC
   }
 }
