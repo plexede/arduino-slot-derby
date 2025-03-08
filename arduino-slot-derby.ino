@@ -10,13 +10,13 @@ Servo ESC;  // create servo object to control the ESC
 #define MOTOR A0
 
 // ESC pulse width in microseconds
-#define MIN_PULSE_WIDTH 1100
-#define MAX_PULSE_WIDTH 1900
+#define MIN_PULSE_WIDTH 1000
+#define MAX_PULSE_WIDTH 2000
 
 
 // blink every 200ms for 5 seconds for priming (to make sure it doesnt move and accidentally trigger)
-#define primingPeriod 5000
-#define blinkInterval 200
+#define PRIMING_PERIOD 5000
+#define BLINK_INTERVAL 200
 
 #define IMU_DEADZONE 0  // PLAY WITH THIS (the number i put is completely random) "Accelerometer range is set at ±4 g with a resolution of 0.122 mg." (whatever that means)
 
@@ -29,6 +29,7 @@ void setup() {
   pinMode(MOTOR, OUTPUT);
 
   // Attach the ESC to MOTOR pin
+  // ESC.writeMicroseconds(1500); // https://forum.arduino.cc/t/help-me-understanding-controlling-brushless-motor/1157800/23
   ESC.attach(MOTOR, MIN_PULSE_WIDTH, MAX_PULSE_WIDTH);  // (pin, min pulse width, max pulse width in microseconds)
 }
 
@@ -52,9 +53,9 @@ void loop() {
 
   // priming period (to make sure it doesnt move and accidentally trigger)
   // blink every 200ms for 5 seconds for priming
-  for (uint16_t i; i < (primingPeriod / blinkInterval); i++) {  // todo put variable outside to avoid calculating every time
+  for (uint16_t i; i < (PRIMING_PERIOD / BLINK_INTERVAL); i++) {  // todo put variable outside to avoid calculating every time
     digitalWrite(LED, (!digitalRead(LED)));                     // set to opposite, meaning it instantly turns off until next call which turns it back on (the opposite state)
-    delay(blinkInterval);
+    delay(BLINK_INTERVAL);
   }
   digitalWrite(LED, HIGH);  // ensure its on at the end because im too lazy to do math
 
@@ -83,7 +84,7 @@ void loop() {
     uint8_t calculatedValue;     // value from the analog pin
     // call speed calculatation function
     calculatedValue = map(calculateSpeed(), 0, 100, 0, 180);  // scale it to use it with the servo library (value between 0 and 180)
-    ESC.write(calculatedValue);                               // Send the signal to the ESC
+    ESC.writeMicroseconds(calculatedValue);                               // Send the signal to the ESC
   }
-    ESC.write(0);
+    ESC.writeMicroseconds(0);
 }
